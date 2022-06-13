@@ -1,7 +1,7 @@
 # Sophia's-Item-And-Weapon-System
 based of of red's / vrlabs [contact trackers system](https://github.com/VRLabs/Contact-Tracker). This is a system for vrchat that allows others to grab and manipulate a object or weapon on your avatar as though it was a part of the world.
 
-# prerequisites please have imporeted first
+# Prerequisites Please Have Imporeted First
 [VRLabs Avatar 3.0 manager](https://github.com/VRLabs/Avatars-3.0-Manager) to merge fx layers
 
 If you dont already have Final Ik download [VRLabs FinalIK stub](https://github.com/VRLabs/Final-IK-Stub) it will let you upload the system to your avatar even if you dont have final ik but you will only be able to test in unity if you have the full final ik
@@ -32,7 +32,7 @@ MIT
 # Contact
 little.sophia#1000 if you make anything cool with this please message me i wanna see what people make of it. if you have any ideas please let me know.
 
-# TO Do List
+# To do list
 I plan to add more wepons to it like a funcional gun and bow.
 potentialy figure out how to get aim ik to work better so there wont be a need for final ik.
 add better smoothing so finger movment has less of an effect on it.
