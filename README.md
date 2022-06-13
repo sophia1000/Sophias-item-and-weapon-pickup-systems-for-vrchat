@@ -13,7 +13,7 @@ Drag the prefab into the heirarchy
 
 Right click on the prefab to unpack it and then drag it onto the base of your avatar
 
-Enable the "Container" under Sword Holder/constraint target and place your desired prop into it or just use the sword that comes with it.
+Enable the "Container" under Sword Holder/constraint target and place your desired prop into the "PUT ITEM IN HERE" object or just use the sword that comes with it.
 
 if you are useing your own item position it to were the swords hilt is so it will be grabed the same way.
 
