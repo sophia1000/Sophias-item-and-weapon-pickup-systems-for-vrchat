@@ -23,6 +23,7 @@ By useing physbones to get the position of the hand it can the conect a series o
 
 # Credit
 [red's / vrlabs tracker system](https://github.com/VRLabs/Contact-Tracker)
+default sword modled by Meltingarmymen
 
 # License
 MIT
