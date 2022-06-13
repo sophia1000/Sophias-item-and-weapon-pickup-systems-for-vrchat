@@ -10,12 +10,19 @@ If you dont already have Final Ik download [VRLabs FinalIK stub](https://github.
 
 # instructions
 Drag the prefab into the heirarchy
+
 Right click on the prefab to unpack it and then drag it onto the base of your avatar
+
 Enable the "Container" under Sword Holder/constraint target and place your desired prop into it or just use the sword that comes with it.
+
 if you are useing your own item position it to were the swords hilt is so it will be grabed the same way.
+
 Hide the container object 
+
 Merge the provided FX controller with yours using the [VRLabs Avatar 3.0 manager](https://github.com/VRLabs/Avatars-3.0-Manager)
+
 there are 2 fx layers provided one with wd on and one with wd off use the one that works for your setup
+
 create a toggle in you menu theres an exaple one provided
 
 
@@ -24,6 +31,7 @@ By useing physbones to get the position of the hand it can the conect a series o
 
 # Credit
 [red's / vrlabs tracker system](https://github.com/VRLabs/Contact-Tracker)
+
 default sword modled by Meltingarmymen
 
 # License
@@ -34,5 +42,7 @@ little.sophia#1000 if you make anything cool with this please message me i wanna
 
 # To do list
 I plan to add more wepons to it like a funcional gun and bow.
+
 potentialy figure out how to get aim ik to work better so there wont be a need for final ik.
-add better smoothing so finger movment has less of an effect on it.
+
+Add better smoothing so finger movment has less of an effect on it.
