@@ -2,6 +2,9 @@
 based of of red's / vrlabs [contact trackers system](https://github.com/VRLabs/Contact-Tracker). This is a system for vrchat that allows others to grab and manipulate a object or weapon on your avatar as though it was a part of the world.
 
 # Prerequisites Please Have Imporeted First
+
+get the newest version from [Releases](https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat/releases)
+
 [VRLabs Avatar 3.0 manager](https://github.com/VRLabs/Avatars-3.0-Manager) to merge fx layers
 
 If you dont already have Final Ik download [VRLabs FinalIK stub](https://github.com/VRLabs/Final-IK-Stub) it will let you upload the system to your avatar even if you dont have final ik but you will only be able to test in unity if you have the full final ik
