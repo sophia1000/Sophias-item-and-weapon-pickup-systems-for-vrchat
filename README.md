@@ -3,7 +3,7 @@ based of of red's / vrlabs [contact trackers system](https://github.com/VRLabs/C
 
 # Prerequisites Please Have Imporeted First
 
-get the newest version from [Releases](https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat/releases)
+get the newest version from [Releases](https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat/releases) v1 was bugged so if you downloaded it please update
 
 [VRLabs Avatar 3.0 manager](https://github.com/VRLabs/Avatars-3.0-Manager) to merge fx layers
 
