@@ -1,0 +1,17 @@
+{
+    "name": "sophia.PickupAndWeaponSystem",
+    "references": [
+        "GUID:5718fb738711cd34ea54e9553040911d"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
