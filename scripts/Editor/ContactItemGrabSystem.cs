@@ -11,38 +11,42 @@ using VRC.SDKBase;
 using VRC.SDK3.Dynamics.Contact.Components;
 
 namespace sophia.PickupAndWeaponSystem.Editor {
-    public class ContactItemGrabSystem: EditorWindow
-    {
-        string itemName;
+    public class ContactItemGrabSystem : EditorWindow {
+        private string _itemName;
 
-        private string animationSavePath = "Assets/sophia's pickups and weapon system/Generated/";
+        private readonly string _animationSavePath = "Assets/sophia's pickups and weapon system/Generated/";
+        private string AnimationsFolderPath => _animationSavePath + _itemName + "/";
 
         private AnimatorController _fxAnimator;
         private VRCAvatarDescriptor _avatar;
-        GameObject worldConstraint;
-        GameObject containerObject;
-        GameObject itemPrefab;
-        GameObject trackingPrefab;
-        GameObject cullPrefab;
-        GameObject targetPrefab;
+        private GameObject _worldConstraint;
+        private GameObject _containerObject;
+        private GameObject _itemPrefab;
+        private GameObject _trackingPrefab;
+        private GameObject _cullPrefab;
+        private GameObject _targetPrefab;
         AnimatorController _copyFromController;
 
-        private GameObject trackingObject;
-        private GameObject itemObject;
+        private string _animationRetargetPath;
 
-        private string animationsFolderPath;
-        private string animationRetargetPath;
+        private Dictionary<string, bool> _selectedLayers = new Dictionary<string, bool>();
 
-        Dictionary<string, bool> selectedLayers = new Dictionary<string, bool>();
+        private bool _worldConstraintExpanded;
+        private bool _cullObjectExpanded;
+        private bool _defaultObjectsFoldoutExpanded;
+        private bool _creditsExpanded;
+        private Vector2 _scrollPosition;
 
-        private bool worldConstraintExpanded;
-        private bool defaultObjectsFoldoutExpanded;
-        private Vector2 scrollPosition;
+        // Item Names
+        private string CullObjectName => "Cull";
+        private string ObjectContainerName => _itemName;
+        private string TargetObjectName => _itemName + " Target";
+        private string TrackingObjectName => _itemName + " Tracking";
+        private string ItemObjectName => _itemName;
 
-        [MenuItem("Tools/Tayou/Contact Item Grab System")]
-        static void Init()
-        {
-            ContactItemGrabSystem window = (ContactItemGrabSystem)GetWindow(typeof(ContactItemGrabSystem), false, "Contact Item Grab System");
+        [MenuItem("Tools/Sophia/Item Pickup System Setup Tool")]
+        static void Init() {
+            ContactItemGrabSystem window = (ContactItemGrabSystem)GetWindow(typeof(ContactItemGrabSystem), false, "Item Pickup System Setup Tool");
             window.Show();
         }
 
@@ -62,9 +66,11 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
             GUILayout.Label("Item Pickup System", centeredStyle);
             GUILayout.Label("by Sophia, script by Tayou & contributors", centeredStyleSmall);
-            Directory.CreateDirectory(animationSavePath);
 
-            EditorGUILayout.BeginScrollView(scrollPosition);
+            _itemName = EditorGUILayout.TextField("Item Name", _itemName);
+            Directory.CreateDirectory(_animationSavePath);
+
+            EditorGUILayout.BeginScrollView(_scrollPosition);
 
             VRCAvatarDescriptor newAvatar = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", _avatar, typeof(VRCAvatarDescriptor), true, new GUILayoutOption[] { });
             if (newAvatar != null && newAvatar != _avatar) {
@@ -74,32 +80,49 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
 #region World Constraint
             int worldConstraintFound;
-            if (worldConstraint == null) { // No world constraint
+            if (_worldConstraint == null) {
+                // No world constraint
                 worldConstraintFound = 1;
-                worldConstraintExpanded = true;
-            } else if (!avatar.transform.Find(worldConstraint.name)) { //its not in Avatar
+                _worldConstraintExpanded = true;
+            } else if (!_avatar.transform.Find(_worldConstraint.name)) {
+                //its not in Avatar
                 worldConstraintFound = 2;
-                worldConstraintExpanded = true;
+                _worldConstraintExpanded = true;
             } else {
                 worldConstraintFound = 0;
             }
-            worldConstraintExpanded = EditorGUILayout.Foldout(worldConstraintExpanded, "World Constraint");
-            if (worldConstraintExpanded) {
+
+            _worldConstraintExpanded = EditorGUILayout.Foldout(_worldConstraintExpanded, "World Constraint");
+            if (_worldConstraintExpanded) {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.HelpBox(new GUIContent(worldConstraintFound == 2 ? "Prefab not found in Avatar, Press button below to Instantiate on Avatar" : "Assign this to Either a Prefab for the world Constraint or a existing World Constraint under your Avatar hierarchy"));
-                worldConstraint = (GameObject)EditorGUILayout.ObjectField("World Constraint", worldConstraint, typeof(GameObject), true, new GUILayoutOption[] { });
+                EditorGUILayout.HelpBox(new GUIContent(worldConstraintFound == 2
+                    ? "Prefab not found in Avatar, Press button below to Instantiate on Avatar"
+                    : "Assign this to Either a Prefab for the world Constraint or a existing World Constraint under your Avatar hierarchy"));
+                _worldConstraint = (GameObject)EditorGUILayout.ObjectField("World Constraint", _worldConstraint, typeof(GameObject), true, new GUILayoutOption[] { });
                 if (GUILayout.Button("Set up World Constraint!")) {
-                    FindAndPlacePrefabs();
+                    PlaceWorldConstraint();
                 }
                 EditorGUI.indentLevel--;
             }
             GUI.enabled = worldConstraintFound == 0;
 #endregion
 
-            itemPrefab = (GameObject)EditorGUILayout.ObjectField("Item Prefab", itemPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
-            trackingPrefab = (GameObject)EditorGUILayout.ObjectField("Tracking Prefab", trackingPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
-            cullPrefab = (GameObject)EditorGUILayout.ObjectField("Cull Object", cullPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
-            targetPrefab = (GameObject)EditorGUILayout.ObjectField("Target Object", targetPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
+#region Cull Object
+            _cullObjectExpanded = EditorGUILayout.Foldout(_cullObjectExpanded, "Cull Object");
+            if (_cullObjectExpanded) {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.HelpBox(new GUIContent("This Prefab will make sure the item will never be culled, preventing desync for the item. Press button below to Instantiate on Avatar"));
+                _cullPrefab = (GameObject)EditorGUILayout.ObjectField("Cull Object", _cullPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
+                if (GUILayout.Button("Set up Cull Object!")) {
+                    PlaceCullObject();
+                }
+                EditorGUI.indentLevel--;
+            }
+#endregion
+
+            _itemPrefab = (GameObject)EditorGUILayout.ObjectField("Item Prefab", _itemPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
+            _trackingPrefab = (GameObject)EditorGUILayout.ObjectField("Tracking Prefab", _trackingPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
+            _targetPrefab = (GameObject)EditorGUILayout.ObjectField("Target Object", _targetPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
 
             if (GUILayout.Button("Set up GameObjects!")) {
                 FindAndPlacePrefabs();
@@ -111,6 +134,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                 AdjustControllerLayers();
             }
 
+            // TODO: get these prefabs & animator automatically somehow, probably by hardcoding the asset IDs and using AssetDatabase.Find()
             /*
 #region Automatically Gathered Objects
             defaultObjectsFoldoutExpanded = EditorGUILayout.Foldout(defaultObjectsFoldoutExpanded, "Built In Assets");
@@ -147,27 +171,32 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         void AdjustControllerLayers() {
             if (!_copyFromController || !_fxAnimator) return;
 
-            selectedLayers = new Dictionary<string, bool>();
+            _selectedLayers = new Dictionary<string, bool>();
             bool firstLayer = false;
             foreach (var layer in _copyFromController.layers) {
-                selectedLayers.Add(layer.name, firstLayer);
+                _selectedLayers.Add(layer.name, firstLayer);
                 firstLayer = true;
             }
             //, new int[]{1, 2, 3}, animationSavePath, ("SophiaItemSys", "SophiaItemSys/" + itemName)
             Copy(_copyFromController, _fxAnimator, PreProcessParameter, PostProcessTransitions);
+            // TODO: rename layers somewhere here to add itemName
             PrintLog("Layers Pasted");
-
         }
 
         /// <summary>
         /// Copies a given Animation Clip from its original Location to a Location made out of the original Path + itemName
-        /// TODO: generate output path from given input path correctly in UPM package
         /// </summary>
         /// <param name="animationClip"></param>
         /// <returns></returns>
         private AnimationClip CopyAnimationClip(AnimationClip animationClip) {
-            // TODO: this line needs updating for the UPM package, needs to create a new path based on the original folder, not based on hardcoded path
-            string newAnimationClipPath = AssetDatabase.GetAssetPath(animationClip).Replace("Assets/sophia's pickups and weapon system/Setup Tool/AnimationAssets/", animationsFolderPath);
+            Debug.Log("Animation Source Path: " + AssetDatabase.GetAssetPath(animationClip));
+
+            /*  TODO: this is not ideal as it assumes the source position. Maybe there is some better way, I am not sure...
+                Appending the destination folder at the start of the path would work, but would produce quite ugly and long paths.. */
+            // in Assets
+            string newAnimationClipPath = AssetDatabase.GetAssetPath(animationClip).Replace("Assets/sophia's pickups and weapon system/Setup Tool/AnimationAssets/", AnimationsFolderPath);
+            // in Packages
+            newAnimationClipPath = newAnimationClipPath.Replace("Packages/com.sophia.item-and-weapon-pickup-system/animations", AnimationsFolderPath);
             Directory.CreateDirectory(Path.GetDirectoryName(newAnimationClipPath));
             if (!AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(animationClip), newAnimationClipPath)) {
                 Debug.LogWarning("Copy Failed");
@@ -195,25 +224,24 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
             // Binding List.
             EditorCurveBinding[] editorCuriveBinding = AnimationUtility.GetCurveBindings(animationClip);
-            for (int i = 0; i < editorCuriveBinding.Length; i++) {
+            foreach (var editorCurveBinding in editorCuriveBinding) {
                 EditorGUILayout.BeginHorizontal();
-                EditorCurveBinding item = editorCuriveBinding[i];
-                if (item.path.Contains("localEulerAnglesRaw")) {
+                // rotation can not be changed like this, TODO: figure out how to avoid the errors in console. It seems even though it "doesn't work" it still does it?
+                if (editorCurveBinding.path.Contains("localEulerAnglesRaw")) {
                     continue;
                 }
 
-                string newPath = item.path;
-                if (item.path.Contains("sophia's hand tracker/Pickup holder/Item 1")) {
-                    newPath = item.path.Replace("sophia's hand tracker/Pickup holder/Item 1", AnimationUtility.CalculateTransformPath(itemObject.transform, avatar.transform));
-                } else if (item.path.Contains("sophia's hand tracker/Cull")) {
-                    newPath = item.path.Replace("sophia's hand tracker/Cull", AnimationUtility.CalculateTransformPath(cullPrefab.transform, avatar.transform));
-                } else if (item.path.Contains("sophia's hand tracker/World/item 1 tracking")) {
-                    newPath = item.path.Replace("sophia's hand tracker/World/item 1 tracking", AnimationUtility.CalculateTransformPath(trackingObject.transform, avatar.transform));
-
+                string newPath = editorCurveBinding.path;
+                if (editorCurveBinding.path.Contains("sophia's hand tracker/Pickup holder/Item 1")) {
+                    newPath = editorCurveBinding.path.Replace("sophia's hand tracker/Pickup holder/Item 1", AnimationUtility.CalculateTransformPath(_itemPrefab.transform, _avatar.transform));
+                } else if (editorCurveBinding.path.Contains("sophia's hand tracker/Cull")) {
+                    newPath = editorCurveBinding.path.Replace("sophia's hand tracker/Cull", AnimationUtility.CalculateTransformPath(_cullPrefab.transform, _avatar.transform));
+                } else if (editorCurveBinding.path.Contains("sophia's hand tracker/World/item 1 tracking")) {
+                    newPath = editorCurveBinding.path.Replace("sophia's hand tracker/World/item 1 tracking", AnimationUtility.CalculateTransformPath(_trackingPrefab.transform, _avatar.transform));
                 }
 
-                animationClip.SetCurve(newPath  , item.type, item.propertyName, AnimationUtility.GetEditorCurve(animationClip, item));
-                animationClip.SetCurve(item.path, item.type, item.propertyName, null);
+                animationClip.SetCurve(newPath  , editorCurveBinding.type, editorCurveBinding.propertyName, AnimationUtility.GetEditorCurve(animationClip, editorCurveBinding));
+                animationClip.SetCurve(editorCurveBinding.path, editorCurveBinding.type, editorCurveBinding.propertyName, null);
             }
             return animationClip;
         }
@@ -222,86 +250,93 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         /// Ratargets Given Constraint to new Transform
         /// </summary>
         /// <param name="constraint">Constraint to Modify</param>
-        /// <param name="targetPrefab">Target Prefab to constrain to</param>
+        /// <param name="target">Target GameObject to constrain to</param>
         /// <param name="index">Index Position in Constraint Sources</param>
-        void RetargetConstraint(ParentConstraint constraint, GameObject targetPrefab, int index) {
+        void RetargetConstraint(ParentConstraint constraint, GameObject target, int index) {
             ConstraintSource owo = constraint.GetSource(index);
-            owo.sourceTransform = targetPrefab.transform;
+            owo.sourceTransform = target.transform;
             constraint.SetSource(0, owo);
 
             PrintLog("Constraint Retargetted");
         }
 
+
+        /// <summary>
+        /// Place World Constraint if not placed already
+        /// </summary>
+        void PlaceWorldConstraint() {
+            if (!_worldConstraint.transform.IsChildOf(_avatar.transform)) {
+                _worldConstraint = Instantiate(_worldConstraint, _avatar.transform);
+            }
+        }
+
+        /// <summary>
+        /// Place Cull Object, which prevents the avatar from being culled, in order to prevent the item from desyncing
+        /// </summary>
+        void PlaceCullObject() {
+            if (!_cullPrefab.transform.IsChildOf(_worldConstraint.transform)) {
+                _cullPrefab = Instantiate(_cullPrefab, _worldConstraint.transform);
+                _cullPrefab.name = CullObjectName;
+            }
+        }
+
         /// <summary>
         /// TODO: place prefabs into one common parent for easy organization
         /// maybe use single prefab for instantiation too, makes it harder to mess up references between the various prefabs
-        /// -> WorldPrefab 
+        /// -> WorldPrefab
         ///     -> Cull
-        ///     -> "itemName" 
+        ///     -> "itemName"
         ///         -> Tracking
         ///         -> Target
         ///         -> Item
         /// </summary>
         void FindAndPlacePrefabs() {
-            // Item Names
-            string cullObjectName = "Cull";
-            string objectContainerName = itemName;
-            string targetObjectName = itemName + " Target";
-            string trackingObjectName = itemName + " Tracking";
-            string itemObjectName = itemName;
-
-
-            // Place World Constraint (if not placed already)
-            if (!worldConstraint.transform.IsChildOf(avatar.transform)) {
-                worldConstraint = Instantiate(worldConstraint, avatar.transform);
-            }
-
-            // Place Cull Object, which prevents the avatar from being culled, in order to prevent the item from desyncing
-            if (!cullPrefab.transform.IsChildOf(worldConstraint.transform)) {
-                cullPrefab = Instantiate(cullPrefab, worldConstraint.transform);
-                cullPrefab.name = cullObjectName;
-            }
+            PlaceWorldConstraint();
+            PlaceCullObject();
 
             // Place Empty Parent Object
-            if ((object)containerObject == null) {
-                containerObject = new GameObject(objectContainerName);
-                containerObject.transform.parent = worldConstraint.transform;
-                containerObject.transform.localPosition = Vector3.zero;
-            } else if (containerObject.name != objectContainerName) { 
-                containerObject.name = objectContainerName;
+            if ((object)_containerObject == null) {
+                _containerObject = new GameObject(ObjectContainerName) {
+                    transform = {
+                        parent = _worldConstraint.transform,
+                        localPosition = Vector3.zero
+                    }
+                };
+            } else if (_containerObject.name != ObjectContainerName) {
+                _containerObject.name = ObjectContainerName;
             }
 
             #region item specific
             {
                 // Place Target Prefab
-                if (!targetPrefab.transform.IsChildOf(worldConstraint.transform)) {
-                    targetPrefab = Instantiate(targetPrefab, worldConstraint.transform);
-                    targetPrefab.name = targetObjectName;
-                } else if (targetPrefab.name != targetObjectName) {
-                    containerObject.name = targetObjectName;
+                if (!_targetPrefab.transform.IsChildOf(_worldConstraint.transform)) {
+                    _targetPrefab = Instantiate(_targetPrefab, _worldConstraint.transform);
+                    _targetPrefab.name = TargetObjectName;
+                } else if (_targetPrefab.name != TargetObjectName) {
+                    _targetPrefab.name = TargetObjectName;
                 }
 
                 // Place Tracking Prefab
-                if (!trackingPrefab.transform.IsChildOf(worldConstraint.transform)) {
-                    trackingPrefab = Instantiate(trackingPrefab, worldConstraint.transform);
-                    trackingPrefab.name = trackingObjectName;
-                } else if (trackingPrefab.name != trackingObjectName) {
-                    trackingPrefab.name = trackingObjectName;
+                if (!_trackingPrefab.transform.IsChildOf(_worldConstraint.transform)) {
+                    _trackingPrefab = Instantiate(_trackingPrefab, _worldConstraint.transform);
+                    _trackingPrefab.name = TrackingObjectName;
+                } else if (_trackingPrefab.name != TrackingObjectName) {
+                    _trackingPrefab.name = TrackingObjectName;
                 }
 
                 // Place Item Prefab
-                if (!itemPrefab.transform.IsChildOf(worldConstraint.transform)) {
-                    itemPrefab = Instantiate(itemPrefab, worldConstraint.transform);
-                    itemPrefab.name = itemObjectName;
-                } else if (itemPrefab.name != itemObjectName) {
-                    itemPrefab.name = itemObjectName;
+                if (!_itemPrefab.transform.IsChildOf(_worldConstraint.transform)) {
+                    _itemPrefab = Instantiate(_itemPrefab, _worldConstraint.transform);
+                    _itemPrefab.name = ItemObjectName;
+                } else if (_itemPrefab.name != ItemObjectName) {
+                    _itemPrefab.name = ItemObjectName;
                 }
             }
             #endregion
 
             PrintLog("Prefabs Placed");
 
-            RetargetConstraint(trackingObject.transform.Find("object").GetComponent<ParentConstraint>(), targetPrefab, 0);
+            RetargetConstraint(_trackingPrefab.transform.Find("object").GetComponent<ParentConstraint>(), _targetPrefab, 0);
         }
 
         /// <summary>
@@ -311,9 +346,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         void UpdateContactReceivers(GameObject first) {
             VRCContactReceiver[] contactReceivers = Resources.FindObjectsOfTypeAll<VRCContactReceiver>();
             foreach (var item in contactReceivers) {
-                item.parameter = item.parameter.Replace("SophiaItemSys", "SophiaItemSys/" + itemName);
+                item.parameter = item.parameter.Replace("SophiaItemSys", "SophiaItemSys/" + _itemName);
             }
-
         }
 
         private void PrintLog(string text) {
@@ -322,17 +356,22 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
         private AnimatorControllerParameter PreProcessParameter(AnimatorControllerParameter parameter) {
             if (parameter.name.Contains("SophiaItemSys")) {
-                return new AnimatorControllerParameter() { name = parameter.name.Replace("SophiaItemSys", "SophiaItemSys/" + itemName), type= parameter.type, defaultBool = parameter.defaultBool, defaultFloat = parameter.defaultFloat, defaultInt = parameter.defaultInt };
+                return new AnimatorControllerParameter() {
+                    name = parameter.name.Replace("SophiaItemSys", "SophiaItemSys/" + _itemName), type = parameter.type,
+                    defaultBool = parameter.defaultBool, defaultFloat = parameter.defaultFloat,
+                    defaultInt = parameter.defaultInt
+                };
             }
+
             return null;
         }
-        
+
         private void PostProcessTransitions(AnimatorTransitionBase[] transitions, Func<AnimatorState, AnimatorTransitionBase> newTransition, Action<AnimatorTransitionBase> removeTransition) {
             foreach (AnimatorTransitionBase tranistion in transitions) {
                 foreach (AnimatorCondition condition in tranistion.conditions) {
                     if (condition.parameter.Contains("SophiaItemSys")) {
                         tranistion.RemoveCondition(condition);
-                        tranistion.AddCondition(condition.mode, condition.threshold, condition.parameter.Replace("SophiaItemSys", "SophiaItemSys/" + itemName));
+                        tranistion.AddCondition(condition.mode, condition.threshold, condition.parameter.Replace("SophiaItemSys", "SophiaItemSys/" + _itemName));
                     }
                 }
             }
@@ -349,7 +388,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         /// Method signature "AnimatorControllerParameter FuncName(AnimatorControllerParameter parameter)"
         /// </param>
         /// <param name="transitionPostProcessor"> Can be null.
-        /// Method to modify, add or remove state transitions as required. 
+        /// Method to modify, add or remove state transitions as required.
         /// Method signature "void FuncName(AnimatorTransitionBase[] transitions, Func<AnimatorState, AnimatorTransitionBase> newTransition, Action<AnimatorTransitionBase> removeTransition)"
         /// </param>
         private void Copy(AnimatorController parSrcAnimator, AnimatorController parDstAnimator,
@@ -363,7 +402,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
             //Find Used Params
             foreach (AnimatorControllerLayer layer in parSrcAnimator.layers) {
-                if (!selectedLayers[layer.name])
+                if (!_selectedLayers[layer.name])
                     continue;
 
                 CollectParameters(usedParameterNames, usedLayerNames, layer.stateMachine);
@@ -385,6 +424,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                         break;
                     }
                 }
+
                 if (srcParam == null) {
                     Debug.LogWarning("Used Parameter \"" + paramName + "\" not found in Source Animator!?!");
                     continue;
@@ -440,7 +480,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
             //Check layers
             foreach (string layerName in usedLayerNames) {
-                if (!selectedLayers[layerName]) {
+                if (!_selectedLayers[layerName]) {
                     Debug.LogError("A layer is required, but not selected (target of synced layer?)");
                     return;
                 }
@@ -478,7 +518,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             AnimatorControllerLayer[] srcLayers = parSrcAnimator.layers;
             List<AnimatorControllerLayer> newLayers = new List<AnimatorControllerLayer>();
             foreach (AnimatorControllerLayer layer in srcLayers) {
-                if (!selectedLayers[layer.name])
+                if (!_selectedLayers[layer.name])
                     continue;
 
                 AnimatorControllerLayer newLayer = new AnimatorControllerLayer {
@@ -504,7 +544,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
             //Setup Synced Layers
             foreach (AnimatorControllerLayer layer in srcLayers) {
-                if (!selectedLayers[layer.name])
+                if (!_selectedLayers[layer.name])
                     continue;
 
                 if (layer.syncedLayerIndex == -1)
@@ -547,10 +587,10 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
         private void CollectParameters(List<string> paramList, List<string> layerList, AnimatorStateMachine stateMachine) {
             //AnyState Transitions
-            InspectTrainsitions(paramList, stateMachine.anyStateTransitions);
+            InspectTransitions(paramList, stateMachine.anyStateTransitions);
 
             //Entry Transitions
-            InspectTrainsitions(paramList, stateMachine.entryTransitions);
+            InspectTransitions(paramList, stateMachine.entryTransitions);
 
             //Behaviours
             foreach (StateMachineBehaviour behaviour in stateMachine.behaviours)
@@ -582,7 +622,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                 InspectMotion(paramList, state.state.motion);
 
                 //Trainsitions
-                InspectTrainsitions(paramList, state.state.transitions);
+                InspectTransitions(paramList, state.state.transitions);
             }
 
             //Child StateMachines
@@ -590,14 +630,15 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                 CollectParameters(paramList, layerList, childStateMachine.stateMachine);
 
                 //Trainsitions
-                InspectTrainsitions(paramList, stateMachine.GetStateMachineTransitions(childStateMachine.stateMachine));
+                InspectTransitions(paramList, stateMachine.GetStateMachineTransitions(childStateMachine.stateMachine));
             }
+
             if (paramList.Contains("ContactTracker")) {
                 Debug.Log("Its here!!!" + paramList.IndexOf("ContactTracker"));
             }
         }
 
-        private void InspectTrainsitions(List<string> paramList, AnimatorTransitionBase[] transitions) {
+        private void InspectTransitions(List<string> paramList, AnimatorTransitionBase[] transitions) {
             foreach (AnimatorTransitionBase transition in transitions) {
                 foreach (AnimatorCondition condition in transition.conditions) {
                     if (!paramList.Contains(condition.parameter))
@@ -607,8 +648,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         }
 
         private void InspectMotion(List<string> paramList, Motion motion) {
-            if (motion is BlendTree)
-                InspectBlendTree(paramList, motion as BlendTree);
+            if (motion is BlendTree blendTree)
+                InspectBlendTree(paramList, blendTree);
         }
 
         private void InspectBlendTree(List<string> paramList, BlendTree tree) {
@@ -619,6 +660,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                             paramList.Add(child.directBlendParameter);
                         }
                     }
+
                     break;
                 case BlendTreeType.Simple1D:
                     if (!paramList.Contains(tree.blendParameter))
@@ -636,8 +678,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                     break;
             }
 
-            for (int i = 0; i < tree.children.Length; i++)
-                InspectMotion(paramList, tree.children[i].motion);
+            foreach (var child in tree.children)
+                InspectMotion(paramList, child.motion);
         }
 
         private void InspectStateBehaviour(List<string> paramList, List<string> layerList, StateMachineBehaviour behaviour) {
@@ -702,37 +744,33 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
                 //cycleOffset
                 nState.cycleOffset = oState.cycleOffset;
-                if (renamedParameters.ContainsKey(oState.cycleOffsetParameter))
-                    nState.cycleOffsetParameter = renamedParameters[oState.cycleOffsetParameter];
-                else
-                    nState.cycleOffsetParameter = oState.cycleOffsetParameter;
+                nState.cycleOffsetParameter = renamedParameters.ContainsKey(oState.cycleOffsetParameter)
+                    ? renamedParameters[oState.cycleOffsetParameter]
+                    : oState.cycleOffsetParameter;
                 nState.cycleOffsetParameterActive = oState.cycleOffsetParameterActive;
 
                 nState.iKOnFeet = oState.iKOnFeet;
 
                 //Mirror
                 nState.mirror = oState.mirror;
-                if (renamedParameters.ContainsKey(oState.mirrorParameter))
-                    nState.mirrorParameter = renamedParameters[oState.mirrorParameter];
-                else
-                    nState.mirrorParameter = oState.mirrorParameter;
+                nState.mirrorParameter = renamedParameters.ContainsKey(oState.mirrorParameter)
+                    ? renamedParameters[oState.mirrorParameter]
+                    : oState.mirrorParameter;
                 nState.mirrorParameterActive = nState.mirrorParameterActive;
 
                 //Speed
                 nState.speed = oState.speed;
-                if (renamedParameters.ContainsKey(oState.speedParameter))
-                    nState.speedParameter = renamedParameters[oState.speedParameter];
-                else
-                    nState.speedParameter = oState.speedParameter;
+                nState.speedParameter = renamedParameters.ContainsKey(oState.speedParameter)
+                    ? renamedParameters[oState.speedParameter]
+                    : oState.speedParameter;
                 nState.speedParameterActive = oState.speedParameterActive;
 
                 nState.tag = oState.tag;
 
                 //Time
-                if (renamedParameters.ContainsKey(oState.timeParameter))
-                    nState.timeParameter = renamedParameters[oState.timeParameter];
-                else
-                    nState.timeParameter = oState.timeParameter;
+                nState.timeParameter = renamedParameters.ContainsKey(oState.timeParameter)
+                    ? renamedParameters[oState.timeParameter]
+                    : oState.timeParameter;
                 nState.timeParameterActive = oState.timeParameterActive;
 
                 nState.writeDefaultValues = oState.writeDefaultValues;
@@ -756,29 +794,27 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
             //Copy Entry Transitions
             foreach (AnimatorTransition oTransition in srcStateMachine.entryTransitions) {
-                AnimatorTransition nTransition;
-                if (oTransition.destinationState != null)
-                    nTransition = dstStateMachine.AddEntryTransition(stateMapping[oTransition.destinationState]);
-                else
-                    nTransition = dstStateMachine.AddEntryTransition(machineMapping[oTransition.destinationStateMachine]);
+                AnimatorTransition nTransition = oTransition.destinationState != null
+                    ? dstStateMachine.AddEntryTransition(stateMapping[oTransition.destinationState])
+                    : dstStateMachine.AddEntryTransition(machineMapping[oTransition.destinationStateMachine]);
 
                 CopyTransition(oTransition, nTransition, renamedParameters);
             }
+
             //PostProcess
-            transitionPostProcessor?.Invoke(srcStateMachine.entryTransitions, target => dstStateMachine.AddEntryTransition(target), x => dstStateMachine.RemoveEntryTransition((AnimatorTransition)x));
+            transitionPostProcessor?.Invoke(srcStateMachine.entryTransitions, dstStateMachine.AddEntryTransition, x => dstStateMachine.RemoveEntryTransition((AnimatorTransition)x));
 
             //Copy AnyState Transitions
             foreach (AnimatorStateTransition oTransition in srcStateMachine.anyStateTransitions) {
-                AnimatorStateTransition nTransition;
-                if (oTransition.destinationState != null)
-                    nTransition = dstStateMachine.AddAnyStateTransition(stateMapping[oTransition.destinationState]);
-                else
-                    nTransition = dstStateMachine.AddAnyStateTransition(machineMapping[oTransition.destinationStateMachine]);
+                AnimatorStateTransition nTransition = oTransition.destinationState != null
+                    ? dstStateMachine.AddAnyStateTransition(stateMapping[oTransition.destinationState])
+                    : dstStateMachine.AddAnyStateTransition(machineMapping[oTransition.destinationStateMachine]);
 
                 CopyStateTransition(oTransition, nTransition, renamedParameters);
             }
+
             //PostProcess
-            transitionPostProcessor?.Invoke(dstStateMachine.anyStateTransitions, target => dstStateMachine.AddAnyStateTransition(target), x => dstStateMachine.RemoveAnyStateTransition((AnimatorStateTransition)x));
+            transitionPostProcessor?.Invoke(dstStateMachine.anyStateTransitions, dstStateMachine.AddAnyStateTransition, x => dstStateMachine.RemoveAnyStateTransition((AnimatorStateTransition)x));
 
             //State Transitions
             foreach (ChildAnimatorState state in srcStateMachine.states) {
@@ -798,6 +834,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
                     CopyStateTransition(oTransition, nTransition, renamedParameters);
                 }
+
                 //PostProcess
                 transitionPostProcessor?.Invoke(nState.transitions, target => nState.AddTransition(target), x => nState.RemoveTransition((AnimatorStateTransition)x));
             }
@@ -851,22 +888,22 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             dstTransition.solo = srcTransition.solo;
 
             foreach (AnimatorCondition condition in srcTransition.conditions) {
-                if (renamedParameters.ContainsKey(condition.parameter))
-                    dstTransition.AddCondition(condition.mode, condition.threshold, renamedParameters[condition.parameter]);
-                else
-                    dstTransition.AddCondition(condition.mode, condition.threshold, condition.parameter);
+                dstTransition.AddCondition(condition.mode, condition.threshold,
+                    renamedParameters.ContainsKey(condition.parameter)
+                        ? renamedParameters[condition.parameter]
+                        : condition.parameter);
             }
         }
 
         Motion DeepCopyMotion(AnimatorStateMachine srcStateMachine, AnimatorStateMachine dstStateMachine, Motion motion, Dictionary<string, string> renamedParameters) {
             if (motion == null)
                 return null;
-            else if (motion is AnimationClip)
-                return UpdateAnimationClipPath(CopyAnimationClip(motion as AnimationClip));
-            else if (motion is BlendTree) {
-                //Is path 
+            else if (motion is AnimationClip clip)
+                return UpdateAnimationClipPath(CopyAnimationClip(clip));
+            else if (motion is BlendTree blendTree) {
+                //Is path
                 if (AssetDatabase.GetAssetPath(srcStateMachine) == AssetDatabase.GetAssetPath(motion))
-                    return DeepCopyBlendTree(srcStateMachine, dstStateMachine, motion as BlendTree, renamedParameters);
+                    return DeepCopyBlendTree(srcStateMachine, dstStateMachine, blendTree, renamedParameters);
                 else
                     return motion;
             } else {
@@ -877,7 +914,6 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
         BlendTree DeepCopyBlendTree(AnimatorStateMachine srcStateMachine, AnimatorStateMachine dstStateMachine, BlendTree tree, Dictionary<string, string> renamedParameters) {
             BlendTree nTree = new BlendTree {
-
                 blendType = tree.blendType,
                 name = tree.name,
                 maxThreshold = tree.maxThreshold,
@@ -922,6 +958,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
                 CopyByReflection(field.GetValue(srcBehaviour), (x) => field.SetValue(dstBehaviour, x), field.FieldType);
             }
+
             //Apply corrections if needed?
             switch (dstBehaviour) {
 #if VRC_SDK_VRCSDK3
