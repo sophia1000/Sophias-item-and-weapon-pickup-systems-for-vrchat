@@ -9,7 +9,7 @@ using System;
 using VRC.SDKBase;
 using VRC.SDK3.Dynamics.Contact.Components;
 
-namespace PickupAndWeaponSystem {
+namespace sophia.PickupAndWeaponSystem.Editor {
     public class ContactItemGrabSystem: EditorWindow
     {
         string itemName;

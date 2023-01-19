@@ -1,5 +1,5 @@
 {
-    "name": "sophia.PickupAndWeaponSystem",
+    "name": "sophia.PickupAndWeaponSystem.Editor",
     "references": [
         "GUID:5718fb738711cd34ea54e9553040911d"
     ],
