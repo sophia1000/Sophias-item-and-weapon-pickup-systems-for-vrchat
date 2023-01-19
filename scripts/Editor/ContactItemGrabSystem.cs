@@ -70,7 +70,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             _itemName = EditorGUILayout.TextField("Item Name", _itemName);
             Directory.CreateDirectory(_animationSavePath);
 
-            EditorGUILayout.BeginScrollView(_scrollPosition);
+            _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
 
             VRCAvatarDescriptor newAvatar = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", _avatar, typeof(VRCAvatarDescriptor), true, new GUILayoutOption[] { });
             if (newAvatar != null && newAvatar != _avatar) {
@@ -186,29 +186,36 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         /// <summary>
         /// Copies a given Animation Clip from its original Location to a Location made out of the original Path + itemName
         /// </summary>
-        /// <param name="animationClip"></param>
+        /// <param name="sourceMotion"></param>
         /// <returns></returns>
-        private AnimationClip CopyAnimationClip(AnimationClip animationClip) {
-            Debug.Log("Animation Source Path: " + AssetDatabase.GetAssetPath(animationClip));
+        private Motion CopyMotionAsset(Motion sourceMotion) {
+            Debug.Log("Animation Source Path: " + AssetDatabase.GetAssetPath(sourceMotion));
 
             /*  TODO: this is not ideal as it assumes the source position. Maybe there is some better way, I am not sure...
                 Appending the destination folder at the start of the path would work, but would produce quite ugly and long paths.. */
             // in Assets
-            string newAnimationClipPath = AssetDatabase.GetAssetPath(animationClip).Replace("Assets/sophia's pickups and weapon system/Setup Tool/AnimationAssets/", AnimationsFolderPath);
+            string newAnimationClipPath = AssetDatabase.GetAssetPath(sourceMotion).Replace("Assets/sophia's pickups and weapon system/Setup Tool/AnimationAssets/", AnimationsFolderPath);
             // in Packages
             newAnimationClipPath = newAnimationClipPath.Replace("Packages/com.sophia.item-and-weapon-pickup-system/animations", AnimationsFolderPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(newAnimationClipPath));
-            if (!AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(animationClip), newAnimationClipPath)) {
-                Debug.LogWarning("Copy Failed");
-            }
-            AnimationClip clip = (AnimationClip)AssetDatabase.LoadAssetAtPath(newAnimationClipPath, typeof(AnimationClip));
-            if (clip == null) {
-                PrintLog("Loading Copied Asset from " + newAnimationClipPath + " was not successful, Abort!");
-            } else {
-                PrintLog("Copied Animation from " + AssetDatabase.GetAssetPath(animationClip) + " to " + newAnimationClipPath);
+            if (newAnimationClipPath == string.Empty) {
+                PrintLog("Motion Copy Failed!\nReturning original");
+                return sourceMotion;
             }
 
-            return clip;
+            Directory.CreateDirectory(Path.GetDirectoryName(newAnimationClipPath) ?? string.Empty); //this ?? is useless, but fleet wouldn't shut up about possible error...
+            if (!AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(sourceMotion), newAnimationClipPath)) {
+                Debug.LogWarning("Copy Failed");
+                return sourceMotion;
+            }
+
+            Motion copiedMotion = (Motion)AssetDatabase.LoadAssetAtPath(newAnimationClipPath, typeof(Motion));
+            if (copiedMotion == null) {
+                PrintLog("Loading Copied Asset from " + newAnimationClipPath + " was not successful, Abort!");
+                return sourceMotion;
+            }
+
+            PrintLog("Copied Animation from " + AssetDatabase.GetAssetPath(sourceMotion) + " to " + newAnimationClipPath);
+            return copiedMotion;
         }
 
         /// <summary>
@@ -281,8 +288,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         }
 
         /// <summary>
-        /// TODO: place prefabs into one common parent for easy organization
-        /// maybe use single prefab for instantiation too, makes it harder to mess up references between the various prefabs
+        /// Places prefabs into one common parent for easy organization
+        /// TODO: maybe use single prefab for instantiation, makes it harder to mess up references between the various prefabs
         /// -> WorldPrefab
         ///     -> Cull
         ///     -> "itemName"
@@ -337,21 +344,21 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             PrintLog("Prefabs Placed");
 
             RetargetConstraint(_trackingPrefab.transform.Find("object").GetComponent<ParentConstraint>(), _targetPrefab, 0);
+            UpdateContactReceivers(_containerObject.transform);
         }
 
-        /// <summary>
-        /// TODO: only change the ones, that belong to the item (check if path includes itemName maybe?)
-        /// </summary>
-        /// <param name="first">Search root (currently not used as Resources.FindObjectsOfTypeAll searches everywhere)</param>
-        void UpdateContactReceivers(GameObject first) {
+        void UpdateContactReceivers(Transform searchRoot) {
+            //This is very slow, which doesn't matter much in the editor, but if there is a better way, we should use that
             VRCContactReceiver[] contactReceivers = Resources.FindObjectsOfTypeAll<VRCContactReceiver>();
             foreach (var item in contactReceivers) {
-                item.parameter = item.parameter.Replace("SophiaItemSys", "SophiaItemSys/" + _itemName);
+                if (item.transform.IsChildOf(searchRoot)) {
+                    item.parameter = item.parameter.Replace("SophiaItemSys", "SophiaItemSys/" + _itemName);
+                }
             }
         }
 
         private void PrintLog(string text) {
-            Debug.Log("<color=#BB22FF>Contact Item Grab Setup Tool</color>: " + text);
+            Debug.Log("<color=#BB22FF>Item Pickup System Setup Tool</color>: " + text);
         }
 
         private AnimatorControllerParameter PreProcessParameter(AnimatorControllerParameter parameter) {
@@ -629,7 +636,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             foreach (ChildAnimatorStateMachine childStateMachine in stateMachine.stateMachines) {
                 CollectParameters(paramList, layerList, childStateMachine.stateMachine);
 
-                //Trainsitions
+                //Transitions
                 InspectTransitions(paramList, stateMachine.GetStateMachineTransitions(childStateMachine.stateMachine));
             }
 
@@ -899,13 +906,13 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             if (motion == null)
                 return null;
             else if (motion is AnimationClip clip)
-                return UpdateAnimationClipPath(CopyAnimationClip(clip));
+                return UpdateAnimationClipPath((AnimationClip)CopyMotionAsset(clip));
             else if (motion is BlendTree blendTree) {
                 //Is path
                 if (AssetDatabase.GetAssetPath(srcStateMachine) == AssetDatabase.GetAssetPath(motion))
                     return DeepCopyBlendTree(srcStateMachine, dstStateMachine, blendTree, renamedParameters);
                 else
-                    return motion;
+                    return CopyMotionAsset(blendTree);
             } else {
                 Debug.LogError("Unkown Motion Type");
                 return null;
