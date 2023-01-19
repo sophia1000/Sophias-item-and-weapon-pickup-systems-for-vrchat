@@ -50,14 +50,17 @@ namespace PickupAndWeaponSystem {
         void OnEnable() { }
 
         void OnGUI() {
-            var centeredStyle = new GUIStyle(GUI.skin.GetStyle("Label"));
-            centeredStyle.alignment = TextAnchor.UpperCenter;
-            centeredStyle.fontSize = 18;
+            var centeredStyle = new GUIStyle(GUI.skin.GetStyle("Label")) {
+                alignment = TextAnchor.UpperCenter,
+                fontSize = 22
+            };
 
-            GUILayout.Label("Contact Item Grab System", centeredStyle);
+            var centeredStyleSmall = new GUIStyle(centeredStyle) {
+                fontSize = 10
+            };
 
-            itemName = EditorGUILayout.TextField("Item Name", itemName);
-            animationsFolderPath = animationSavePath + itemName + "/";
+            GUILayout.Label("Item Pickup System", centeredStyle);
+            GUILayout.Label("by Sophia, script by Tayou & contributors", centeredStyleSmall);
             Directory.CreateDirectory(animationSavePath);
 
             EditorGUILayout.BeginScrollView(scrollPosition);
@@ -117,6 +120,21 @@ namespace PickupAndWeaponSystem {
             }
 #endregion
             */
+
+#region Credits
+            GUI.enabled = true;
+            _creditsExpanded = EditorGUILayout.Foldout(_creditsExpanded, "Credits");
+            if (_creditsExpanded) {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.LabelField("Sophia: Initial System: Animations, Animator Controller, Prefabs");
+                EditorGUILayout.LabelField("Tayou: Setup Script");
+                EditorGUILayout.LabelField("AirGamer: LayerCopy Script, used in Setup Script");
+
+                // Add your name here if you contributed to the script or prefab!
+
+                EditorGUI.indentLevel--;
+            }
+#endregion
 
             EditorGUILayout.EndScrollView();
         }
