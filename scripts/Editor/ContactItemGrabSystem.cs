@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Animations;
 using System.IO;
 using System;
+using VRC.SDK3.Avatars.Components;
 using VRC.SDKBase;
 using VRC.SDK3.Dynamics.Contact.Components;
 
@@ -16,15 +17,15 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
         private string animationSavePath = "Assets/sophia's pickups and weapon system/Generated/";
 
-        AnimatorController fxAnimator;
-        VRC_AvatarDescriptor avatar;
+        private AnimatorController _fxAnimator;
+        private VRCAvatarDescriptor _avatar;
         GameObject worldConstraint;
         GameObject containerObject;
         GameObject itemPrefab;
         GameObject trackingPrefab;
         GameObject cullPrefab;
         GameObject targetPrefab;
-        AnimatorController copyFromController;
+        AnimatorController _copyFromController;
 
         private GameObject trackingObject;
         private GameObject itemObject;
@@ -65,7 +66,11 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
             EditorGUILayout.BeginScrollView(scrollPosition);
 
-            avatar = (VRC_AvatarDescriptor)EditorGUILayout.ObjectField("Avatar", avatar, typeof(VRC_AvatarDescriptor), true, new GUILayoutOption[] { });
+            VRCAvatarDescriptor newAvatar = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", _avatar, typeof(VRCAvatarDescriptor), true, new GUILayoutOption[] { });
+            if (newAvatar != null && newAvatar != _avatar) {
+                _avatar = newAvatar;
+                _fxAnimator = (AnimatorController)_avatar.baseAnimationLayers[4].animatorController;
+            }
 
 #region World Constraint
             int worldConstraintFound;
@@ -100,8 +105,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                 FindAndPlacePrefabs();
             }
 
-            fxAnimator = (AnimatorController)EditorGUILayout.ObjectField("FX Controller", fxAnimator, typeof(AnimatorController), true, new GUILayoutOption[] { });
-            copyFromController = (AnimatorController)EditorGUILayout.ObjectField("Animator to copy from", copyFromController, typeof(AnimatorController), true, new GUILayoutOption[] { });
+            _fxAnimator = (AnimatorController)EditorGUILayout.ObjectField("FX Controller", _fxAnimator, typeof(AnimatorController), true, new GUILayoutOption[] { });
+            _copyFromController = (AnimatorController)EditorGUILayout.ObjectField("Animator to copy from", _copyFromController, typeof(AnimatorController), true, new GUILayoutOption[] { });
             if (GUILayout.Button("Set up Animator!")) {
                 AdjustControllerLayers();
             }
@@ -140,16 +145,16 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         }
 
         void AdjustControllerLayers() {
-            if (!copyFromController || !fxAnimator) return;
+            if (!_copyFromController || !_fxAnimator) return;
 
             selectedLayers = new Dictionary<string, bool>();
             bool firstLayer = false;
-            foreach (var layer in copyFromController.layers) {
+            foreach (var layer in _copyFromController.layers) {
                 selectedLayers.Add(layer.name, firstLayer);
                 firstLayer = true;
             }
             //, new int[]{1, 2, 3}, animationSavePath, ("SophiaItemSys", "SophiaItemSys/" + itemName)
-            Copy(copyFromController, fxAnimator, PreProcessParameter, PostProcessTransitions);
+            Copy(_copyFromController, _fxAnimator, PreProcessParameter, PostProcessTransitions);
             PrintLog("Layers Pasted");
 
         }
