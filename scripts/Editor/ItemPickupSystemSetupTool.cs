@@ -11,7 +11,7 @@ using VRC.SDKBase;
 using VRC.SDK3.Dynamics.Contact.Components;
 
 namespace sophia.PickupAndWeaponSystem.Editor {
-    public class ContactItemGrabSystem : EditorWindow {
+    public class ItemPickupSystemSetupTool : EditorWindow {
         private string _itemName;
 
         private readonly string _animationSavePath = "Assets/sophia's pickups and weapon system/Generated/";
@@ -46,7 +46,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
         [MenuItem("Tools/Sophia/Item Pickup System Setup Tool")]
         static void Init() {
-            ContactItemGrabSystem window = (ContactItemGrabSystem)GetWindow(typeof(ContactItemGrabSystem), false, "Item Pickup System Setup Tool");
+            ItemPickupSystemSetupTool window = (ItemPickupSystemSetupTool)GetWindow(typeof(ItemPickupSystemSetupTool), false, "Item Pickup System Setup Tool");
             window.Show();
         }
 
@@ -191,7 +191,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         private Motion CopyMotionAsset(Motion sourceMotion) {
             Debug.Log("Animation Source Path: " + AssetDatabase.GetAssetPath(sourceMotion));
 
-            /*  TODO: this is not ideal as it assumes the source position. Maybe there is some better way, I am not sure...
+            /*  FIXME: this is not ideal as it assumes the source position. Maybe there is some better way, I am not sure...
                 Appending the destination folder at the start of the path would work, but would produce quite ugly and long paths.. */
             // in Assets
             string newAnimationClipPath = AssetDatabase.GetAssetPath(sourceMotion).Replace("Assets/sophia's pickups and weapon system/Setup Tool/AnimationAssets/", AnimationsFolderPath);
@@ -260,9 +260,9 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         /// <param name="target">Target GameObject to constrain to</param>
         /// <param name="index">Index Position in Constraint Sources</param>
         void RetargetConstraint(ParentConstraint constraint, GameObject target, int index) {
-            ConstraintSource owo = constraint.GetSource(index);
-            owo.sourceTransform = target.transform;
-            constraint.SetSource(0, owo);
+            ConstraintSource constraintSource = constraint.GetSource(index);
+            constraintSource.sourceTransform = target.transform;
+            constraint.SetSource(index, constraintSource);
 
             PrintLog("Constraint Retargetted");
         }
