@@ -3,7 +3,7 @@
 ## Usage
 
 ### Setting up a Item for the first time:
-1. Open the Editor Tool from the menubar -> "Tools" -> Sophia -> Item Pickup System Setup Tool
+1. Open the Editor Tool from the menubar -> Tools -> Sophia -> Item Pickup System Setup Tool
 2. Enter the name of your Pickup object into the `Name` slot
 3. Assign the avatar descriptor in the slot at the top
 4. If you already have a world constraint on your avatar, put it in the slot. Otherwise hit the button to place one.

@@ -1,18 +1,20 @@
-# Sophia's-Item-And-Weapon-System
+# Sophia's Item And Weapon Pickup System
 Based off red's / VRLabs [contact trackers system](https://github.com/VRLabs/Contact-Tracker). This is a system for vrchat that allows others to grab and manipulate an object or weapon on your avatar as though it was a part of the world.
 
 ## Instructions
 ### Prerequisites - Please Have Imported First
-
-- Install latest version via UPM by adding as git package like this:
-    [image](TODO)
+https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat
+- Install latest version via UPM by adding as git package using this url: `https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat`:   
+![image](https://user-images.githubusercontent.com/31988415/214831214-3d94ed23-c084-47fc-985f-5c9a8e317d35.png)   
+![image](https://user-images.githubusercontent.com/31988415/214831368-17da6210-1b59-4df4-a984-69007b6e8a4f.png)   
     or get the latest version from [Releases](https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat/releases) and put it into the `Packages` Folder in your Project **(not `Assets`!)**
-- If you don't own Final IK, download [VRLabs FinalIK stub](https://github.com/VRLabs/Final-IK-Stub) It will let you upload the system to your avatar even if you don't have Final IK. But note that you will only be able to test in unity if you have the full Final IK.
-- Ensure you have the VRChat Avatar SDK installed, the following packages are needed: `com.vrchat.base`, `com.vrchat.avatars`
+- If you don't own Final IK, download [VRLabs FinalIK stub](https://github.com/VRLabs/Final-IK-Stub) It will let you upload the system to your avatar even if you don't have Final IK.   
+But note that you will only be able to test in unity if you have the [full Final IK](https://assetstore.unity.com/packages/tools/animation/final-ik-14290).
+- Ensure you have the VRChat Avatar SDK installed, the following packages are needed: `com.vrchat.base`, `com.vrchat.avatars`   
     Get them from the VRChat Creator Companion or manually from [VRChat.com](https://vrchat.com/home/download)
 
 ### Automatic
-1. Open the Editor Tool from the menubar -> "Tools" -> Sophia -> Item Pickup System Setup Tool
+1. Open the Editor Tool from the menubar -> Tools -> Sophia -> Item Pickup System Setup Tool
 2. Enter the name of your Pickup object into the `Name` slot
 3. Assign the avatar descriptor in the slot at the top
 4. If you already have a world constraint on your avatar, put it in the slot. Otherwise hit the button to place one.
@@ -24,7 +26,7 @@ Based off red's / VRLabs [contact trackers system](https://github.com/VRLabs/Con
     After placing your item make sure to remove the existing item or mark it as `EditorOnly`
 
 ### Manual
-- (Optional) Install [VRLabs Avatar 3.0 manager](https://github.com/VRLabs/Avatars-3.0-Manager) to merge fx layers.
+- (Optional) Install [VRLabs Avatar 3.0 manager](https://github.com/VRLabs/Avatars-3.0-Manager) or [AirGamers AnimatorLayerCopy](https://github.com/TheLastRar/AnimatorLayerCopy) to merge fx layers.
 
  1. Drag the prefab into the hierarchy.
  2. Right-click on the prefab to unpack it and then drag it onto the base of your avatar
