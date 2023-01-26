@@ -5,11 +5,11 @@ Based off red's / VRLabs [contact trackers system](https://github.com/VRLabs/Con
 ### Prerequisites - Please Have Imported First
 https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat
 - Install latest version via UPM by adding as git package using this url: `https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat`:   
-![image](https://user-images.githubusercontent.com/31988415/214831214-3d94ed23-c084-47fc-985f-5c9a8e317d35.png)   
-![image](https://user-images.githubusercontent.com/31988415/214831368-17da6210-1b59-4df4-a984-69007b6e8a4f.png)   
+    ![image](https://user-images.githubusercontent.com/31988415/214831214-3d94ed23-c084-47fc-985f-5c9a8e317d35.png)   
+    ![image](https://user-images.githubusercontent.com/31988415/214831368-17da6210-1b59-4df4-a984-69007b6e8a4f.png)   
     or get the latest version from [Releases](https://github.com/sophia1000/Sophias-item-and-weapon-pickup-systems-for-vrchat/releases) and put it into the `Packages` Folder in your Project **(not `Assets`!)**
 - If you don't own Final IK, download [VRLabs FinalIK stub](https://github.com/VRLabs/Final-IK-Stub) It will let you upload the system to your avatar even if you don't have Final IK.   
-But note that you will only be able to test in unity if you have the [full Final IK](https://assetstore.unity.com/packages/tools/animation/final-ik-14290).
+    But note that you will only be able to test in unity if you have the [full Final IK](https://assetstore.unity.com/packages/tools/animation/final-ik-14290).
 - Ensure you have the VRChat Avatar SDK installed, the following packages are needed: `com.vrchat.base`, `com.vrchat.avatars`   
     Get them from the VRChat Creator Companion or manually from [VRChat.com](https://vrchat.com/home/download)
 
@@ -41,9 +41,9 @@ But note that you will only be able to test in unity if you have the [full Final
 By using PhysBones to get the position of the hand, it can connect a series of proximity contacts around your hand and by using the position of your fingers and hands it can then tell where your hand is and how its positioned.
 
 ## Credit
-[red's / vrlabs tracker system](https://github.com/VRLabs/Contact-Tracker)
-[Tayou / Making the setup script](https://github.com/TayouVR)
-[AirGamer / Providing LayerCopy script, used internally](https://github.com/TheLastRar/AnimatorLayerCopy)
+[red's / vrlabs tracker system](https://github.com/VRLabs/Contact-Tracker)   
+[Tayou / Making the setup script](https://github.com/TayouVR)   
+[AirGamer / Providing LayerCopy script, used internally](https://github.com/TheLastRar/AnimatorLayerCopy)   
 
 Default sword modelled by Meltingarmymen
 
