@@ -1,6 +1,6 @@
 {
   "name": "com.sophia.item-and-weapon-pickup-system",
-  "displayName": "Sophias Item and Weapon Pickup System",
+  "displayName": "Sophias Item Pickup System",
   "version": "1.0.0",
   "unity": "2019.4",
   "description": "Tool to Set up Sophias Item and Weapon Pickup System. \nIncludes one Sample Animator and various prefabs for a single manual setup. \nIt is recommended to use the tool though as to generate virtually infinite Item Setups.",
