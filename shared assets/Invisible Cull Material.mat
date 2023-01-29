@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Cull
+  m_Name: Invisible Cull Material
   m_Shader: {fileID: 4800000, guid: ce0223e3d14290f4dbd446b92fd3df57, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
