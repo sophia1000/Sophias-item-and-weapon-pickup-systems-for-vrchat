@@ -6893,7 +6893,7 @@ AnimatorController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: WD on FX Item tracker 4
+  m_Name: WD on FX Item tracker
   serializedVersion: 5
   m_AnimatorParameters:
   - m_Name: IsLocal
@@ -13438,28 +13438,28 @@ AnimatorStateMachine:
     m_Position: {x: 50, y: 240, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3207264822790742452}
-    m_Position: {x: -170, y: 480, z: 0}
+    m_Position: {x: -170, y: 540, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 6986206592336899754}
-    m_Position: {x: -170, y: 350, z: 0}
+    m_Position: {x: -170, y: 290, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -7514624611416918888}
     m_Position: {x: 50, y: 160, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -4310286002729138320}
-    m_Position: {x: 370, y: 310, z: 0}
+    m_Position: {x: 370, y: 340, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -6999861168496186267}
-    m_Position: {x: 370, y: 480, z: 0}
+    m_Position: {x: 200, y: 540, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 4760664758107326174}
-    m_Position: {x: 60, y: 430, z: 0}
+    m_Position: {x: 50, y: 430, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -5853719964028132161}
-    m_Position: {x: 60, y: 340, z: 0}
+    m_Position: {x: 50, y: 340, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 1175408409264415838}
-    m_Position: {x: 370, y: 350, z: 0}
+    m_Position: {x: 370, y: 430, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []
