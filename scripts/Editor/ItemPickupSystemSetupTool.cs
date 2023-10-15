@@ -9,6 +9,7 @@ using System;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDKBase;
 using VRC.SDK3.Dynamics.Contact.Components;
+using System.Linq;
 
 namespace sophia.PickupAndWeaponSystem.Editor {
     public class ItemPickupSystemSetupTool : EditorWindow {
@@ -19,10 +20,12 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 
         private AnimatorController _fxAnimator;
         private VRCAvatarDescriptor _avatar;
-        private GameObject _worldConstraint;
+        private GameObject _worldConstraintObject;
+        private GameObject _worldConstraintPrefab;
         private GameObject _containerObject;
         private GameObject _itemPrefab;
         private GameObject _trackingPrefab;
+        private GameObject _cullObject;
         private GameObject _cullPrefab;
         private GameObject _targetPrefab;
         AnimatorController _copyFromController;
@@ -36,6 +39,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         private bool _defaultObjectsFoldoutExpanded;
         private bool _creditsExpanded;
         private Vector2 _scrollPosition;
+        private bool _debugFoldoutExpanded;
+        private bool _debugEnabled;
 
         // Item Names
         private string CullObjectName => "Cull";
@@ -75,16 +80,16 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             VRCAvatarDescriptor newAvatar = (VRCAvatarDescriptor)EditorGUILayout.ObjectField("Avatar", _avatar, typeof(VRCAvatarDescriptor), true, new GUILayoutOption[] { });
             if (newAvatar != null && newAvatar != _avatar) {
                 _avatar = newAvatar;
-                _fxAnimator = (AnimatorController)_avatar.baseAnimationLayers[4].animatorController;
+                _fxAnimator = (AnimatorController)_avatar.baseAnimationLayers.Where((VRCAvatarDescriptor.CustomAnimLayer layer) => layer.type == VRCAvatarDescriptor.AnimLayerType.FX).ToArray()[0].animatorController;
             }
 
 #region World Constraint
             int worldConstraintFound;
-            if (_worldConstraint == null) {
+            if (_worldConstraintPrefab == null) {
                 // No world constraint
                 worldConstraintFound = 1;
                 _worldConstraintExpanded = true;
-            } else if (!_avatar.transform.Find(_worldConstraint.name)) {
+            } else if (!_avatar.transform.Find(_worldConstraintPrefab.name)) {
                 //its not in Avatar
                 worldConstraintFound = 2;
                 _worldConstraintExpanded = true;
@@ -98,7 +103,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                 EditorGUILayout.HelpBox(new GUIContent(worldConstraintFound == 2
                     ? "Prefab not found in Avatar, Press button below to Instantiate on Avatar"
                     : "Assign this to Either a Prefab for the world Constraint or a existing World Constraint under your Avatar hierarchy"));
-                _worldConstraint = (GameObject)EditorGUILayout.ObjectField("World Constraint", _worldConstraint, typeof(GameObject), true, new GUILayoutOption[] { });
+                _worldConstraintPrefab = (GameObject)EditorGUILayout.ObjectField("World Constraint", _worldConstraintPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
                 if (GUILayout.Button("Set up World Constraint!")) {
                     PlaceWorldConstraint();
                 }
@@ -134,21 +139,35 @@ namespace sophia.PickupAndWeaponSystem.Editor {
                 AdjustControllerLayers();
             }
 
+            GUI.enabled = true;
+
             // TODO: get these prefabs & animator automatically somehow, probably by hardcoding the asset IDs and using AssetDatabase.Find()
-            /*
-#region Automatically Gathered Objects
-            defaultObjectsFoldoutExpanded = EditorGUILayout.Foldout(defaultObjectsFoldoutExpanded, "Built In Assets");
-            if (defaultObjectsFoldoutExpanded) {
-                GUI.enabled = false;
-                EditorGUILayout.ObjectField("World Prefab", null, typeof(GameObject), true, new GUILayoutOption[] { });
+#region Debug
+            LoadPrefabsFromEditorPrefs(out string worldPrefabAssetID, out string cullPrefabAssetID, out string itemPrefabAssetID,
+                    out string modifiedWorldPrefabAssetID, out string modifiedCullPrefabAssetID, out string modifiedItemPrefabAssetID);
+
+            _debugFoldoutExpanded = EditorGUILayout.Foldout(_debugFoldoutExpanded, "Debug");
+            if (_debugFoldoutExpanded) {
+                EditorGUILayout.HelpBox(new GUIContent("Debug Mode will print a lot of data to the unity console and allows you to change some internal prefabs, see below."));
+                _debugEnabled = EditorGUILayout.Toggle(EditorPrefs.GetBool("itemPickupSystemDebugMode", false), "Debug Mode");
+                EditorPrefs.SetBool("itemPickupSystemDebugMode", _debugEnabled);
+
+                GUI.enabled = _debugEnabled;
+                _worldConstraintPrefab = (GameObject)EditorGUILayout.ObjectField("World Prefab", _worldConstraintPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
                 EditorGUILayout.HelpBox(new GUIContent("This Prefab should be a empty object at 0, 0, 0 with no rotation and default scale. it is used to fix objects on the avatar in world space."));
-                EditorGUILayout.ObjectField("Cull Prefab", null, typeof(GameObject), true, new GUILayoutOption[] { });
+                _cullPrefab = (GameObject)EditorGUILayout.ObjectField("Cull Prefab", _cullPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
                 EditorGUILayout.HelpBox(new GUIContent("This Prefab is a invisible, very large box, that will prevent the avatar from being culled when Props are spawned in. This is necessary to ensure the Props position doesn't get lost for remote players."));
-                EditorGUILayout.ObjectField("---", null, typeof(GameObject), true, new GUILayoutOption[] { });
-                EditorGUILayout.HelpBox(new GUIContent("This Prefab should be a empty object at 0, 0, 0 with no rotation and default scale. it is used to fix objects on the avatar in world space."));
+                _itemPrefab = (GameObject)EditorGUILayout.ObjectField("Item Prefab", _itemPrefab, typeof(GameObject), true, new GUILayoutOption[] { });
+                EditorGUILayout.HelpBox(new GUIContent("This Prefab Actually contains all the constraints and contact receiver for the pickup to function."));
+                _copyFromController = (AnimatorController)EditorGUILayout.ObjectField("WD Off Source Animator", _copyFromController, typeof(AnimatorController), true, new GUILayoutOption[] { });
+                EditorGUILayout.HelpBox(new GUIContent("Animator Controller which will be used to copy layers and parameters into your FX layer (Write Defaults Off)"));
+                _copyFromController = (AnimatorController)EditorGUILayout.ObjectField("WD On Source Animator", _copyFromController, typeof(AnimatorController), true, new GUILayoutOption[] { });
+                EditorGUILayout.HelpBox(new GUIContent("Animator Controller which will be used to copy layers and parameters into your FX layer (Write Defaults On)"));
             }
+
+            SavePrefabsToEditorPrefs(worldPrefabAssetID, cullPrefabAssetID, itemPrefabAssetID,
+                    modifiedWorldPrefabAssetID, modifiedCullPrefabAssetID, modifiedItemPrefabAssetID);
 #endregion
-            */
 
 #region Credits
             GUI.enabled = true;
@@ -166,6 +185,46 @@ namespace sophia.PickupAndWeaponSystem.Editor {
 #endregion
 
             EditorGUILayout.EndScrollView();
+        }
+
+        void LoadPrefabsFromEditorPrefs(out string worldPrefabAssetID, out string cullPrefabAssetID, out string itemPrefabAssetID,
+                out string modifiedWorldPrefabAssetID, out string modifiedCullPrefabAssetID, out string modifiedItemPrefabAssetID) {
+            worldPrefabAssetID = EditorPrefs.GetString("itemPickupSystemWorldPrefabAssetID");
+            cullPrefabAssetID = EditorPrefs.GetString("itemPickupSystemCullPrefabAssetID");
+            itemPrefabAssetID = EditorPrefs.GetString("itemPickupSystemItemPrefabAssetID");
+
+            // Set Defaults
+            if (string.IsNullOrEmpty(worldPrefabAssetID)) {
+                EditorPrefs.SetString("itemPickupSystemWorldPrefabAssetID", "TODO: Hardcoded ID");
+            }
+            if (string.IsNullOrEmpty(cullPrefabAssetID)) {
+                EditorPrefs.SetString("itemPickupSystemCullPrefabAssetID", "TODO: Hardcoded ID");
+            }
+            if (string.IsNullOrEmpty(itemPrefabAssetID)) {
+                EditorPrefs.SetString("itemPickupSystemItemPrefabAssetID", "TODO: Hardcoded ID");
+            }
+
+            modifiedWorldPrefabAssetID = worldPrefabAssetID;
+            modifiedCullPrefabAssetID = cullPrefabAssetID;
+            modifiedItemPrefabAssetID = itemPrefabAssetID;
+
+            _worldConstraintPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(worldPrefabAssetID));
+            _cullPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(cullPrefabAssetID));
+            _itemPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(itemPrefabAssetID));
+
+        }
+
+        void SavePrefabsToEditorPrefs(string worldPrefabAssetID, string cullPrefabAssetID, string itemPrefabAssetID,
+                string modifiedWorldPrefabAssetID, string modifiedCullPrefabAssetID, string modifiedItemPrefabAssetID) {
+            if (worldPrefabAssetID != modifiedWorldPrefabAssetID) {
+                EditorPrefs.SetString("itemPickupSystemWorldPrefabAssetID", AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_worldConstraintPrefab)));
+            }
+            if (cullPrefabAssetID != modifiedCullPrefabAssetID) {
+                EditorPrefs.SetString("itemPickupSystemCullPrefabAssetID", AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_cullPrefab)));
+            }
+            if (itemPrefabAssetID != modifiedItemPrefabAssetID) {
+                EditorPrefs.SetString("itemPickupSystemItemPrefabAssetID", AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_itemPrefab)));
+            }
         }
 
         void AdjustControllerLayers() {
@@ -272,8 +331,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         /// Place World Constraint if not placed already
         /// </summary>
         void PlaceWorldConstraint() {
-            if (!_worldConstraint.transform.IsChildOf(_avatar.transform)) {
-                _worldConstraint = Instantiate(_worldConstraint, _avatar.transform);
+            if (!_worldConstraintPrefab.transform.IsChildOf(_avatar.transform)) {
+                _worldConstraintPrefab = Instantiate(_worldConstraintPrefab, _avatar.transform);
             }
         }
 
@@ -281,8 +340,8 @@ namespace sophia.PickupAndWeaponSystem.Editor {
         /// Place Cull Object, which prevents the avatar from being culled, in order to prevent the item from desyncing
         /// </summary>
         void PlaceCullObject() {
-            if (!_cullPrefab.transform.IsChildOf(_worldConstraint.transform)) {
-                _cullPrefab = Instantiate(_cullPrefab, _worldConstraint.transform);
+            if (!_cullPrefab.transform.IsChildOf(_worldConstraintPrefab.transform)) {
+                _cullPrefab = Instantiate(_cullPrefab, _worldConstraintPrefab.transform);
                 _cullPrefab.name = CullObjectName;
             }
         }
@@ -305,7 +364,7 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             if ((object)_containerObject == null) {
                 _containerObject = new GameObject(ObjectContainerName) {
                     transform = {
-                        parent = _worldConstraint.transform,
+                        parent = _worldConstraintPrefab.transform,
                         localPosition = Vector3.zero
                     }
                 };
@@ -316,24 +375,24 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             #region item specific
             {
                 // Place Target Prefab
-                if (!_targetPrefab.transform.IsChildOf(_worldConstraint.transform)) {
-                    _targetPrefab = Instantiate(_targetPrefab, _worldConstraint.transform);
+                if (!_targetPrefab.transform.IsChildOf(_worldConstraintPrefab.transform)) {
+                    _targetPrefab = Instantiate(_targetPrefab, _worldConstraintPrefab.transform);
                     _targetPrefab.name = TargetObjectName;
                 } else if (_targetPrefab.name != TargetObjectName) {
                     _targetPrefab.name = TargetObjectName;
                 }
 
                 // Place Tracking Prefab
-                if (!_trackingPrefab.transform.IsChildOf(_worldConstraint.transform)) {
-                    _trackingPrefab = Instantiate(_trackingPrefab, _worldConstraint.transform);
+                if (!_trackingPrefab.transform.IsChildOf(_worldConstraintPrefab.transform)) {
+                    _trackingPrefab = Instantiate(_trackingPrefab, _worldConstraintPrefab.transform);
                     _trackingPrefab.name = TrackingObjectName;
                 } else if (_trackingPrefab.name != TrackingObjectName) {
                     _trackingPrefab.name = TrackingObjectName;
                 }
 
                 // Place Item Prefab
-                if (!_itemPrefab.transform.IsChildOf(_worldConstraint.transform)) {
-                    _itemPrefab = Instantiate(_itemPrefab, _worldConstraint.transform);
+                if (!_itemPrefab.transform.IsChildOf(_worldConstraintPrefab.transform)) {
+                    _itemPrefab = Instantiate(_itemPrefab, _worldConstraintPrefab.transform);
                     _itemPrefab.name = ItemObjectName;
                 } else if (_itemPrefab.name != ItemObjectName) {
                     _itemPrefab.name = ItemObjectName;
@@ -357,8 +416,15 @@ namespace sophia.PickupAndWeaponSystem.Editor {
             }
         }
 
-        private void PrintLog(string text) {
-            Debug.Log("<color=#BB22FF>Item Pickup System Setup Tool</color>: " + text);
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="important">Print Log when not in debug mode</param>
+        private void PrintLog(string text, bool important = false) {
+            if (_debugEnabled || important) {
+                Debug.Log("<color=#BB22FF>Item Pickup System Setup Tool</color>: " + text);
+            }
         }
 
         private AnimatorControllerParameter PreProcessParameter(AnimatorControllerParameter parameter) {
