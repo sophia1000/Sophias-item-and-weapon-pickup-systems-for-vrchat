@@ -33,9 +33,6 @@ Default sword modelled by Meltingarmymen
 # License
 MIT
 
-# Contact
-little.sophia#1000
-If you make something cool with this, please message me. I wanna see what people make of it. if you have any ideas please let me know.
 
 # To-do list
 I plan to add more weapons to it like a functional gun and bow.
